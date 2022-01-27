@@ -114,8 +114,9 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 // Socket Part
 
-socket.on("welcome", () => {
-  console.log("Somebody joined");
+socket.on("welcome", async () => {
+  const offer = await myPeerConnection.createOffer();
+  console.log(offer);
 });
 
 // RTC Part
