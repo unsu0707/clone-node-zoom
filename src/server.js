@@ -16,8 +16,15 @@ const io = SocketIO(httpServer);
 io.on("connection", (socket) => {
   socket.on("join_room", (roomName, callback) => {
     socket.join(roomName);
-    callback();
     socket.to(roomName).emit("welcome");
+  });
+
+  socket.on("offer", (offer, roomName) => {
+    socket.to(roomName).emit("offer", offer);
+  });
+
+  socket.on("answer", (answer, roomName) => {
+    socket.to(roomName).emit("answer", answer);
   });
 });
 
