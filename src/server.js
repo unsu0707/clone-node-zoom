@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import SocketIO from socket.io;
+import SocketIO from "socket.io";
 
 const app = express();
 
