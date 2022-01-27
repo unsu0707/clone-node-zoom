@@ -11,6 +11,8 @@ call.hidden = true;
 let myStream;
 let micOn = true;
 let cameraOn = true;
+let roomName;
+let myPeerConnection;
 
 const getCameras = async () => {
   try {
@@ -93,17 +95,35 @@ camerasSelect.addEventListener("input", handleCameraChange);
 
 const welcome = document.getElementById("welcome");
 const welcomeForm = welcome.querySelector("form");
-const startMedia = () => {
+const startMedia = async () => {
   welcome.hidden = true;
   call.hidden = false;
-  getMedia();
+  await getMedia();
+  makeConnection();
 };
 
 const handleWelcomeSubmit = (event) => {
   event.preventDefault();
   const input = welcomeForm.querySelector("input");
   socket.emit("join_room", input.value, startMedia);
+  roomName = input.value;
   input.value = "";
 };
 
 welcomeForm.addEventListener("submit", handleWelcomeSubmit);
+
+// Socket Part
+
+socket.on("welcome", () => {
+  console.log("Somebody joined");
+});
+
+// RTC Part
+
+const makeConnection = () => {
+  myPeerConnection = new RTCPeerConnection();
+  console.log(myStream.getTracks());
+  myStream
+    .getTracks()
+    .forEach((track) => myPeerConnection.addTrack(track, myStream));
+};

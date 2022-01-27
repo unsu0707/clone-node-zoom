@@ -17,6 +17,7 @@ io.on("connection", (socket) => {
   socket.on("join_room", (roomName, callback) => {
     socket.join(roomName);
     callback();
+    socket.to(roomName).emit("welcome");
   });
 });
 
