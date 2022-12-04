@@ -28,10 +28,6 @@ const getCameras = async () => {
       }
       camerasSelect.append(option);
     });
-    const option = document.createElement("option");
-    option.value = "dummy";
-    option.innerText = "null";
-    camerasSelect.append(option);
     myFace.srcObject = myStream;
   } catch (e) {
     console.log(e);
