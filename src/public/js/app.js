@@ -38,12 +38,12 @@ const getMedia = async (deviceId = null) => {
     audio: true,
     video: { facingMode: "user" },
   };
+  const cameraConstraints = {
+    audio: true,
+    video: { deviceId: { exact: deviceId } },
+  };
   try {
-    myStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: deviceId ? { deviceId: { exact: deviceId } } : true,
-    });
-    console.log(myStream.getVideoTracks());
+    myStream = await navigator.mediaDevices.getUserMedia(deviceId ? cameraConstraints : initialConstrains);
     myFace.srcObject = myStream;
     if (!deviceId) {
       await getCameras();
@@ -54,9 +54,7 @@ const getMedia = async (deviceId = null) => {
 };
 
 const handleMicClick = () => {
-  myStream
-    .getAudioTracks()
-    .forEach((track) => (track.enabled = !track.enabled));
+  myStream.getAudioTracks().forEach((track) => (track.enabled = !track.enabled));
   if (micOn) {
     micOn = false;
     micBtn.innerText = "Unmute";
@@ -66,9 +64,7 @@ const handleMicClick = () => {
   }
 };
 const handleCameraClick = () => {
-  myStream
-    .getVideoTracks()
-    .forEach((track) => (track.enabled = !track.enabled));
+  myStream.getVideoTracks().forEach((track) => (track.enabled = !track.enabled));
   if (cameraOn) {
     cameraOn = false;
     cameraBtn.innerText = "Camera On";
@@ -79,8 +75,12 @@ const handleCameraClick = () => {
 };
 
 const handleCameraChange = async () => {
-  console.log(camerasSelect.value);
   await getMedia(camerasSelect.value);
+  if (myPeerConnection) {
+    const videoTrack = myStream.getVideoTracks()[0];
+    const videoSender = myPeerConnection.getSenders().find((sender) => sender.track.kind === "video");
+    videoSender.replaceTrack(videoTrack);
+  }
 };
 
 micBtn.addEventListener("click", handleMicClick);
@@ -114,30 +114,38 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 socket.on("welcome", async () => {
   const offer = await myPeerConnection.createOffer();
   myPeerConnection.setLocalDescription(offer);
-  console.log("Sent the offer");
   socket.emit("offer", offer, roomName);
 });
 
 socket.on("offer", async (offer) => {
-  console.log(offer);
   myPeerConnection.setRemoteDescription(offer);
   const answer = await myPeerConnection.createAnswer();
+  myPeerConnection.setLocalDescription(answer);
   socket.emit("answer", answer, roomName);
-  console.log("Sent the Answer");
 });
 
-socket.on("answer", async (answer) => {
-  console.log(answer);
+socket.on("answer", (answer) => {
   myPeerConnection.setRemoteDescription(answer);
-  console.log(myPeerConnection.getTracks());
+});
+
+socket.on("ice", (ice) => {
+  myPeerConnection.addIceCandidate(ice);
 });
 
 // RTC Part
 
 const makeConnection = () => {
   myPeerConnection = new RTCPeerConnection();
-  console.log(myStream.getTracks());
-  myStream
-    .getTracks()
-    .forEach((track) => myPeerConnection.addTrack(track, myStream));
+  myPeerConnection.addEventListener("icecandidate", handleIce);
+  myPeerConnection.addEventListener("track", handleTrack);
+  myStream.getTracks().forEach((track) => myPeerConnection.addTrack(track, myStream));
 };
+
+function handleIce(data) {
+  socket.emit("ice", data.candidate, roomName);
+}
+
+function handleTrack(data) {
+  const peerFace = document.getElementById("peerFace");
+  peerFace.srcObject = data.streams[0];
+}
